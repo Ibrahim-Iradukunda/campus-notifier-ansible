@@ -1,0 +1,57 @@
+---
+- name: Configure and deploy Campus Notifier
+  hosts: campus_notifier
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Confirm the host uses a Debian-family operating system
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['os_family'] == 'Debian'
+        fail_msg: "This playbook installs Docker with apt and requires Ubuntu or Debian."
+
+    - name: Require a configured NairobiPulse image
+      ansible.builtin.assert:
+        that:
+          - nairobi_pulse_image is defined
+          - nairobi_pulse_image | length > 0
+          - "'REPLACE_WITH' not in nairobi_pulse_image"
+        fail_msg: "Set nairobi_pulse_image in group_vars/all.yml to the app image from your team repo."
+
+  tasks:
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - python3-docker
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Enable and start Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Run NairobiPulse
+      community.docker.docker_container:
+        name: nairobi-pulse
+        image: "{{ nairobi_pulse_image }}"
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "{{ app_host_port }}:{{ app_container_port }}"
+
+    - name: Wait for NairobiPulse health endpoint
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:{{ app_host_port }}{{ app_health_path }}"
+        method: GET
+        status_code: 200
+      delegate_to: localhost
+      become: false
+      register: app_health
+      retries: 12
+      delay: 5
+      until: app_health.status == 200

@@ -1,0 +1,5 @@
+---
+nairobi_pulse_image: "REPLACE_WITH_PUBLISHED_NAIROBI_PULSE_IMAGE"
+app_container_port: 3000
+app_host_port: 3000
+app_health_path: /health
