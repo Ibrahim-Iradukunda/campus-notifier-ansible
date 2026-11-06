@@ -55,3 +55,72 @@
       retries: 12
       delay: 5
       until: app_health.status == 200
+
+- name: Configure the database
+  hosts: database
+  become: true
+  gather_facts: true
+  vars_files:
+    - secrets.yml
+
+  tasks:
+    - name: Install Postgres
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - python3-psycopg2
+          - acl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Find the Postgres version folder
+      ansible.builtin.find:
+        paths: /etc/postgresql
+        file_type: directory
+      register: pg_versions
+
+    - name: Remember the config folder
+      ansible.builtin.set_fact:
+        pg_conf_dir: "{{ pg_versions.files[0].path }}/main"
+
+    - name: Listen on the network
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_dir }}/postgresql.conf"
+        regexp: "^#?listen_addresses"
+        line: "listen_addresses = '*'"
+      notify: Restart postgres
+
+    - name: Allow only the app server
+      ansible.builtin.lineinfile:
+        path: "{{ pg_conf_dir }}/pg_hba.conf"
+        line: "host campus campus {{ hostvars['nairobi_pulse'].private_ip }}/32 scram-sha-256"
+      notify: Restart postgres
+
+    - name: Apply the config now
+      ansible.builtin.meta: flush_handlers
+
+    - name: Keep Postgres running
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: true
+
+    - name: Create the database user
+      community.postgresql.postgresql_user:
+        name: campus
+        password: "{{ db_password }}"
+      become_user: postgres
+      no_log: true
+
+    - name: Create the database
+      community.postgresql.postgresql_db:
+        name: campus
+        owner: campus
+      become_user: postgres
+
+  handlers:
+    - name: Restart postgres
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted

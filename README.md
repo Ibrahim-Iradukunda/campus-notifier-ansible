@@ -235,3 +235,19 @@ a bucket this account cannot access, so this checkout uses the ignored
 `terraform/backend.local.hcl` override and account-local state bucket. Keep the
 local backend override and inventory out of Git; do not put credentials in
 Terraform variables committed to Git.
+## Drill 8 evidence (local track)
+
+Added a second play to `playbook.yml` that configures Postgres on the `database` host:
+installs Postgres, listens on the network, allows only the app server's private IP in
+`pg_hba.conf`, keeps Postgres running, and creates the `campus` user and database.
+The password comes from `secrets.yml`, which Git ignores.
+
+Second run of `ansible-playbook -i inventory.local.ini playbook.yml --limit database`:
+
+    database_box : ok=9  changed=0  unreachable=0  failed=0  skipped=0
+
+Check: `psql -lqt` shows the `campus` database owned by `campus`.
+
+Fix: creating the user first failed with `chmod: invalid mode: 'A+user:postgres:rx:allow'`,
+because becoming the unprivileged `postgres` user needs the `acl` package. Added `acl`
+to the install task.
