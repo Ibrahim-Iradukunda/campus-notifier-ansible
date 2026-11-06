@@ -235,3 +235,15 @@ a bucket this account cannot access, so this checkout uses the ignored
 `terraform/backend.local.hcl` override and account-local state bucket. Keep the
 local backend override and inventory out of Git; do not put credentials in
 Terraform variables committed to Git.
+## Drill 9 evidence (local track)
+
+Added a task that writes `/etc/docker/daemon.json` with `"storage-driver": "vfs"`, plus a
+`Restart docker` handler. It only runs when `ansible_facts['virtualization_type'] == "docker"`
+(the fact found in drill 7), so it applies on the local track and is skipped on AWS VMs.
+Docker is still installed with the `apt` module and started with the `service` module.
+
+First run: Install Docker, the vfs task and the Restart docker handler reported `changed`.
+Check: `docker info | grep 'Storage Driver'` returns `Storage Driver: vfs`.
+
+Note for drill 10: the health check called `http://127.0.0.1:3000/health`, but the Campus
+Notifier image listens on 8000 and serves `/health/`, so group_vars needs updating.
