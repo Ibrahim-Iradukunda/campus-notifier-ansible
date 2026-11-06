@@ -7,7 +7,20 @@ DynamoDB state locking, so changes to the shared infrastructure are coordinated.
 ## Backend configuration
 
 The backend is configured in [`terraform/backend.tf`](./terraform/backend.tf).
+## Drill 7 evidence (local track)
 
+Inventory: `inventory.local.ini` (ignored by Git), built from `terraform output` on the local track.
+
+- App box: `nairobi_pulse` at 127.0.0.1:22, user `devops`, private IP 10.0.0.3
+- Database box: `database_box` at 127.0.0.1:2222, user `devops`, private IP 10.0.0.2
+- Key filename: `~/.ssh/alu-devops` (private key not committed)
+
+Command: `ansible -i inventory.local.ini all -m ping`
+
+    nairobi_pulse | SUCCESS => "changed": false, "ping": "pong"
+    database_box  | SUCCESS => "changed": false, "ping": "pong"
+
+Fact gathered: `ansible_virtualization_type: docker`. Drill 9 uses this fact so the vfs storage-driver setting applies only on the local track.
 | Setting | Value |
 |---|---|
 | Backend | Amazon S3 |
