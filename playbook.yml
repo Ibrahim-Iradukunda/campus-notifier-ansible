@@ -38,11 +38,18 @@
     - name: Run NairobiPulse
       community.docker.docker_container:
         name: nairobi-pulse
-        image: "{{ nairobi_pulse_image }}"
+        image: "{{ nairobi_pulse_image }}:{{ app_image_tag | default('v1.0.0') }}"
         state: started
         restart_policy: unless-stopped
         published_ports:
           - "{{ app_host_port }}:{{ app_container_port }}"
+        env:
+          NODE_ENV: "{{ app_node_env | default('production') }}"
+          DATABASE_URL: "{{ database_url | default('postgresql://user:pass@database:5432/db') }}"
+          PORT: "{{ app_container_port }}"
+          APP_SECRET: "{{ app_secret | default('change-me-in-production') }}"
+        volumes:
+          - "app-data:/app/data"
 
     - name: Wait for NairobiPulse health endpoint
       ansible.builtin.uri:

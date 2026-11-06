@@ -1,5 +1,9 @@
 ---
 nairobi_pulse_image: "REPLACE_WITH_PUBLISHED_NAIROBI_PULSE_IMAGE"
+app_image_tag: "v1.0.0"
 app_container_port: 3000
 app_host_port: 3000
 app_health_path: /health
+app_node_env: "production"
+# database_url should be set via environment variable or ansible-vault
+# app_secret should be set via environment variable or ansible-vault
