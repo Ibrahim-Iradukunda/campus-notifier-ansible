@@ -29,6 +29,20 @@
         update_cache: true
         cache_valid_time: 3600
 
+    - name: Use the vfs storage driver inside containers
+      ansible.builtin.copy:
+        content: |
+          {
+            "storage-driver": "vfs"
+          }
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+      when: ansible_facts['virtualization_type'] == "docker"
+      notify: Restart docker
+
+    - name: Apply the Docker config now
+      ansible.builtin.meta: flush_handlers
+
     - name: Enable and start Docker
       ansible.builtin.service:
         name: docker
@@ -123,4 +137,8 @@
     - name: Restart postgres
       ansible.builtin.service:
         name: postgresql
+  handlers:
+    - name: Restart docker
+      ansible.builtin.service:
+        name: docker
         state: restarted
