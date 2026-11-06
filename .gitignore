@@ -10,3 +10,4 @@ inventory.local.ini
 *.tfvars
 !*.tfvars.example
 terraform/backend.local.hcl
+secrets.yml
